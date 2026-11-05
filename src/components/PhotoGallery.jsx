@@ -1,10 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2, X, Pause, Play } from 'lucide-react';
 import { GALLERY_IMAGES } from '../data/siteContent';
+
+const AUTOPLAY_INTERVAL_MS = 5000;
+
+const prefersReducedMotion = () => {
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+};
 
 export default function PhotoGallery() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  // User-controlled pause; starts paused when the OS asks for reduced motion
+  const [isPaused, setIsPaused] = useState(prefersReducedMotion);
+  // Temporary pause while the pointer or keyboard focus is on the carousel
+  const [isInteracting, setIsInteracting] = useState(false);
+
+  const isAutoplaying = !isPaused && !isInteracting && !lightboxOpen;
 
   const totalImages = GALLERY_IMAGES.length;
   const activeImage = GALLERY_IMAGES[activeIndex];
@@ -18,6 +34,19 @@ export default function PhotoGallery() {
   const handleNext = useCallback(() => {
     setActiveIndex((prev) => (prev + 1) % totalImages);
   }, [totalImages]);
+
+  // Auto-advance. Depends on activeIndex so any manual prev/next restarts the timer.
+  useEffect(() => {
+    if (!isAutoplaying) return undefined;
+    const timerId = window.setTimeout(handleNext, AUTOPLAY_INTERVAL_MS);
+    return () => window.clearTimeout(timerId);
+  }, [isAutoplaying, activeIndex, handleNext]);
+
+  const handleShowcaseBlur = (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setIsInteracting(false);
+    }
+  };
 
   useEffect(() => {
     if (!lightboxOpen) return undefined;
@@ -64,7 +93,7 @@ export default function PhotoGallery() {
           </div>
 
           <div className="gallery-header-controls">
-            <div className="gallery-progress-meta" aria-live="polite">
+            <div className="gallery-progress-meta" aria-live={isAutoplaying ? 'off' : 'polite'}>
               <span className="gallery-progress-num">{formatIndex(activeIndex)}</span>
               <span className="gallery-progress-bar">
                 <span
@@ -76,6 +105,18 @@ export default function PhotoGallery() {
             </div>
 
             <div className="gallery-top-arrows">
+              <button
+                type="button"
+                className="gallery-nav-btn"
+                onClick={() => setIsPaused((prev) => !prev)}
+                aria-label={isPaused ? 'Play gallery slideshow' : 'Pause gallery slideshow'}
+              >
+                {isPaused ? (
+                  <Play size={16} aria-hidden="true" />
+                ) : (
+                  <Pause size={16} aria-hidden="true" />
+                )}
+              </button>
               <button
                 type="button"
                 className="gallery-nav-btn prev"
@@ -111,6 +152,10 @@ export default function PhotoGallery() {
         className="gallery-showcase"
         tabIndex={0}
         onKeyDown={handleStageKeyDown}
+        onMouseEnter={() => setIsInteracting(true)}
+        onMouseLeave={() => setIsInteracting(false)}
+        onFocus={() => setIsInteracting(true)}
+        onBlur={handleShowcaseBlur}
         aria-roledescription="carousel"
         aria-label="Featured Pahrump Property Photographs"
       >
@@ -178,7 +223,7 @@ export default function PhotoGallery() {
         {/* Below-Stage Editorial Caption */}
         <div className="container">
           <div className="gallery-editorial-footer">
-            <div className="gallery-caption-bar" aria-live="polite" style={{ borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
+            <div className="gallery-caption-bar" aria-live={isAutoplaying ? 'off' : 'polite'} style={{ borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
               <span className="gallery-caption-index">{formatIndex(activeIndex)}</span>
               <div className="gallery-caption-body">
                 <p className="gallery-caption-text">{activeImage.title}</p>
