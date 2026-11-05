@@ -12,7 +12,7 @@ import {
   MessageCircle,
   ArrowUpRight,
 } from 'lucide-react';
-import { BRAND_INFO, OFFICE_HOURS } from '../data/siteContent';
+import { BRAND_INFO, OFFICE_HOURS, REALTOR_CONTENT } from '../data/siteContent';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -129,8 +129,8 @@ export default function ContactSection({ prefilledMessage, onClearPrefilledMessa
             <div className="contact-dossier-top">
               <div className="contact-agent-badge">
                 <img
-                  src="/assets/images/realtor-headshot.jpg"
-                  alt={BRAND_INFO.name}
+                  src={REALTOR_CONTENT.portrait.src}
+                  alt={REALTOR_CONTENT.portrait.alt}
                   className="contact-agent-avatar"
                   loading="lazy"
                 />
